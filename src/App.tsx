@@ -11,7 +11,7 @@ interface CellRef {
 }
 
 const numRows = 100
-const numCols = 100
+const numCols = 26
 const rowSize = "25px"
 const colSize = "100px"
 
@@ -21,12 +21,26 @@ function App() {
   )
   const [activeCell, setActiveCell] = useState<CellRef>({ row: 0, col: 0 })
 
+  const genColHeaders = (index: number) => {
+    let columnName = ""
+    while (index >= 0) {
+      columnName = String.fromCharCode(65 + (index % 26)) + columnName
+      index = Math.floor(index / 26) - 1
+    }
+    return columnName
+  }
+
   return (
     <main>
       <table className="table-auto border-collapse">
         <tbody>
+          <th className="opacity-0">0</th>
+          {Array.from({ length: numCols }, (_, colIndex) => (
+            <th>{genColHeaders(colIndex)}</th>
+          ))}
           {cells.map((row, rowIndex) => (
             <tr key={rowIndex}>
+              <th>{rowIndex + 1}</th>
               {row.map((cell, colIndex) => (
                 <td
                   key={colIndex}
