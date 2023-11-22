@@ -17,12 +17,11 @@ const colSize = "100px"
 function App() {
   const [cells, setCells] = useState<Cell[][]>(Array(numRows).fill(Array(numCols).fill({ value: "" })))
   const [activeCell, setActiveCell] = useState<CellRef>({ row: 0, col: 0 })
-  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [isEditing, setIsEditing] = useState<boolean>(true)
   const [shiftKey, setShiftKey] = useState(false)
 
   useEffect(() => {
     const navigateCells = (e: KeyboardEvent, rowDelta: number, colDelta: number) => {
-      e.preventDefault()
       let newRow = activeCell.row + rowDelta
       let newCol = activeCell.col + colDelta
       if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numCols) {
@@ -43,24 +42,43 @@ function App() {
           setShiftKey(true)
           break
         case "Enter":
-          const rowChange = shiftKey ? -1 : 1
-          navigateCells(e, rowChange, 0)
+          e.preventDefault()
+          if (isEditing) {
+            setIsEditing(false)
+            const rowChange = shiftKey ? -1 : 1
+            navigateCells(e, rowChange, 0)
+          } else {
+            setIsEditing(true)
+          }
           break
         case "Tab":
+          e.preventDefault()
           const colChange = shiftKey ? -1 : 1
           navigateCells(e, 0, colChange)
           break
         case "ArrowUp":
-          navigateCells(e, -1, 0)
+          e.preventDefault()
+          if (!isEditing) {
+            navigateCells(e, -1, 0)
+          }
           break
         case "ArrowDown":
-          navigateCells(e, 1, 0)
+          e.preventDefault()
+          if (!isEditing) {
+            navigateCells(e, 1, 0)
+          }
           break
         case "ArrowLeft":
-          navigateCells(e, 0, -1)
+          e.preventDefault()
+          if (!isEditing) {
+            navigateCells(e, 0, -1)
+          }
           break
         case "ArrowRight":
-          navigateCells(e, 0, 1)
+          e.preventDefault()
+          if (!isEditing) {
+            navigateCells(e, 0, 1)
+          }
           break
       }
     }
@@ -72,7 +90,7 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
-  }, [activeCell, setActiveCell, shiftKey, setShiftKey])
+  }, [activeCell, setActiveCell, shiftKey, setShiftKey, isEditing])
 
   const genColHeaders = (index: number) => {
     let columnName = ""
@@ -81,6 +99,10 @@ function App() {
       index = Math.floor(index / 26) - 1
     }
     return columnName
+  }
+
+  const isActiveCell = (row: number, col: number) => {
+    return activeCell.row === row && activeCell.col === col
   }
 
   return (
@@ -111,7 +133,7 @@ function App() {
                       height: rowSize,
                     }}
                   >
-                    <p>{cell.value}</p>
+                    {isEditing && isActiveCell(rowIndex, colIndex) ? <div>Editing</div> : <p>{cell.value}</p>}
                   </div>
                 </td>
               ))}
