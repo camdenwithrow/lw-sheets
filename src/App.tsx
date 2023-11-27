@@ -23,6 +23,7 @@ const initialCells = () => {
 function App() {
   const [cells, setCells] = useState<Cell[][]>(initialCells())
   const [activeCell, setActiveCell] = useState<CellRef>({ row: 0, col: 0 })
+  const [selectedRange] = useState<Array<CellRef> | null>(null)
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -53,11 +54,23 @@ function App() {
     return headers
   }, [])
 
+  const isInRange = () => {
+    if (!selectedRange) return false
+    const inRow =
+      Math.min(...selectedRange.map((x) => x.row)) <= activeCell.row &&
+      activeCell.row <= Math.max(...selectedRange.map((x) => x.row))
+    const inCol =
+      Math.min(...selectedRange.map((x) => x.col)) <= activeCell.col &&
+      activeCell.col <= Math.max(...selectedRange.map((x) => x.col))
+    return inRow && inCol
+  }
+
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus()
     }
   }, [isEditing])
+
 
   const isActiveCell = (row: number, col: number) => {
     return activeCell.row === row && activeCell.col === col
@@ -116,7 +129,9 @@ function App() {
                         className="w-full h-full border-0 outline-none"
                       />
                     ) : (
-                      <p className={`w-full overflow-hidden`}>{cell.value}</p>
+                      <p className={`w-full overflow-hidden cursor-default ${isInRange() ? "bg-blue-100" : ""}`}>
+                        {cell.value}
+                      </p>
                     )}
                   </div>
                 </td>
