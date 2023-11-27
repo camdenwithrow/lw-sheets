@@ -2,15 +2,17 @@ import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react"
 
 interface Cell {
   value: string
+  styles: string[]
 }
+type CellProp = keyof Cell
 
 interface CellRef {
   row: number
   col: number
 }
 
-const numRows = 100
-const numCols = 26
+const numRows = 25
+const numCols = 10
 const rowSize = "30px"
 const colSize = "100px"
 
@@ -19,7 +21,7 @@ const initialCells = () => {
   for (let i = 0; i < numRows; i++) {
     const row = []
     for (let j = 0; j < numCols; j++) {
-      row.push({ value: "" })
+      row.push({ value: "", styles: [] })
     }
     cells.push(row)
   }
@@ -47,18 +49,30 @@ function App() {
     return headers
   }, [])
 
+  const setCellProperty = useCallback(
+    (property: CellProp, newPropVal: string | string[]) => {
+      setCells((prevCells) => {
+        const newCells = [...prevCells]
+        const cell = newCells[activeCell.row][activeCell.col]
+        if (property === "value" && typeof newPropVal === "string") {
+          cell.value = newPropVal
+        } else if (property === "styles" && Array.isArray(newPropVal)) {
+          cell.styles = newPropVal
+        }
+        return newCells
+      })
+    },
+    [activeCell.col, activeCell.row]
+  )
+
   const storeVal = useCallback(
     (val?: string) => {
       if (val !== undefined) {
-        setCells((prevCells) => {
-          const newCells = [...prevCells]
-          newCells[activeCell.row][activeCell.col].value = val
-          return newCells
-        })
+        setCellProperty("value", val)
       }
       setIsEditing(false)
     },
-    [activeCell.row, activeCell.col]
+    [setCellProperty]
   )
 
   const editCell = () => {
@@ -80,16 +94,39 @@ function App() {
       }
     }
 
+    const toggleStyle = (style: string) => {
+      const styles = cells[activeCell.row][activeCell.col].styles
+      if (styles.includes(style)) {
+        setCellProperty(
+          "styles",
+          styles.filter((x) => x !== style)
+        )
+      } else {
+        setCellProperty("styles", [...styles, style])
+      }
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const isModifierKey = e.metaKey || e.altKey || e.ctrlKey
-      if (!isEditing && e.key.length === 1 && !isModifierKey) {
+      if (!isEditing && e.key.length === 1) {
         e.preventDefault()
-        setIsEditing(true)
-        setCells((prevCells) => {
-          const newCells = [...prevCells]
-          newCells[activeCell.row][activeCell.col].value = e.key
-          return newCells
-        })
+        if (!isModifierKey) {
+          setIsEditing(true)
+          setCellProperty("value", e.key)
+        } else if (e.metaKey) {
+          const styleKey = e.key.toLowerCase()
+          switch (styleKey) {
+            case "b":
+              toggleStyle("font-bold")
+              break
+            case "u":
+              toggleStyle("underline")
+              break
+            case "i":
+              toggleStyle("italic")
+              break
+          }
+        }
       } else {
         let colChange = 0
         switch (e.key) {
@@ -142,7 +179,7 @@ function App() {
           case "Escape":
             if (isEditing) {
               e.preventDefault()
-              storeVal("")
+              storeVal()
             }
             break
           default:
@@ -156,7 +193,7 @@ function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [activeCell, setActiveCell, isEditing, storeVal])
+  }, [activeCell, setActiveCell, isEditing, storeVal, cells, setCellProperty])
 
   const isActiveCell = (row: number, col: number) => {
     return activeCell.row === row && activeCell.col === col
@@ -172,11 +209,7 @@ function App() {
   }
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCells((prevCells) => {
-      const newCells = [...prevCells]
-      newCells[activeCell.row][activeCell.col].value = e.target.value
-      return newCells
-    })
+    setCellProperty("value", e.target.value)
   }
 
   return (
@@ -186,24 +219,22 @@ function App() {
           <tr>
             <th className="opacity-0">0</th>
             {colHeaders().map((colH, colIndex) => (
-              <th key={`colHeader-${colIndex}`}>{colH}</th>
-            ))}
-            {Array.from({ length: numCols }, (_, colIndex) => (
-              <th key={`colHeader-${colIndex}`}>{colHeaders()}</th>
+              <th key={`colHeader-${colIndex}`} className="font-bold border-x border-gray-500">
+                {colH}
+              </th>
             ))}
           </tr>
           {cells.map((row, rowIndex) => (
             <tr key={rowIndex}>
-              <th>{rowIndex + 1}</th>
+              <th className="border-y border-gray-500">{rowIndex + 1}</th>
               {row.map((cell, colIndex) => (
-                <td
-                  key={colIndex}
-                  className={`border p-0 ${
-                    activeCell.row === rowIndex && activeCell.col === colIndex ? "border-2 border-blue-300" : ""
-                  }`}
-                >
+                <td key={colIndex} className="border  p-0 relative border-gray-500">
                   <div
-                    className="p-0.5"
+                    className={`p-0.5 flex justify-center items-center relative ${cell.styles} ${
+                      activeCell.row === rowIndex && activeCell.col === colIndex
+                        ? "after:absolute after:-inset-px  after:content-[''] after:border-2 after:border-blue-500"
+                        : ""
+                    }`}
                     style={{
                       minWidth: colSize,
                       minHeight: rowSize,
