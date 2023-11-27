@@ -2,19 +2,18 @@ import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } fr
 import useStoreCell from "../hooks/useStoreCell"
 import { CellData, CellRef } from "../types/types"
 import useKeyEvent from "../hooks/useKeyEvent"
-import { numCols, numRows } from "../App"
 
 interface CellProps {
   activeCell: CellRef
   setActiveCell: Dispatch<SetStateAction<CellRef>>
   rowIndex: number
   colIndex: number
-  rowSize: string
-  colSize: string
+  gridSizes: { rows: string; cols: string }
+  gridDimensions: { rows: number; cols: number }
 }
 
 const Cell = (props: CellProps) => {
-  const { activeCell, setActiveCell, rowIndex, colIndex, rowSize, colSize } = props
+  const { activeCell, setActiveCell, rowIndex, colIndex, gridSizes, gridDimensions } = props
 
   const [cell, setCell] = useState<CellData>({ ref: { row: rowIndex, col: colIndex }, value: "", styles: [] })
   const [isEditing, setIsEditing] = useState<boolean>(false)
@@ -23,7 +22,17 @@ const Cell = (props: CellProps) => {
 
   const { storeVal, setCellProperty } = useStoreCell(setCell, setIsEditing)
 
-  useKeyEvent(activeCell, setActiveCell, numRows, numCols, isEditing, setIsEditing, storeVal, cell, setCellProperty)
+  useKeyEvent(
+    activeCell,
+    setActiveCell,
+    gridDimensions.rows,
+    gridDimensions.cols,
+    isEditing,
+    setIsEditing,
+    storeVal,
+    cell,
+    setCellProperty
+  )
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -57,10 +66,10 @@ const Cell = (props: CellProps) => {
             : ""
         }`}
         style={{
-          minWidth: colSize,
-          minHeight: rowSize,
-          width: colSize,
-          height: rowSize,
+          minWidth: gridSizes.cols,
+          minHeight: gridSizes.rows,
+          width: gridSizes.cols,
+          height: gridSizes.rows,
         }}
         onClick={() => handleCellClick(rowIndex, colIndex)}
       >
