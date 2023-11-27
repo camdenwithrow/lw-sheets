@@ -1,29 +1,20 @@
-import React, { SetStateAction, useCallback } from "react"
-import { Cell, CellProp, CellRef } from "../types/types"
+import { Dispatch, SetStateAction, useCallback } from "react"
+import { CellData, CellKeys } from "../types/types"
 
-interface useStoreCellProps {
-  setCells: React.Dispatch<SetStateAction<Cell[][]>>
-  activeCell: CellRef
-  setIsEditing: React.Dispatch<SetStateAction<boolean>>
-}
-
-function useStoreCell(props: useStoreCellProps) {
-  const { setCells, activeCell, setIsEditing } = props
-
+function useStoreCell(setCell: Dispatch<SetStateAction<CellData>>, setIsEditing: Dispatch<SetStateAction<boolean>>) {
   const setCellProperty = useCallback(
-    (property: CellProp, newPropVal: string | string[]) => {
-      setCells((prevCells) => {
-        const newCells = [...prevCells]
-        const cell = newCells[activeCell.row][activeCell.col]
+    (property: CellKeys, newPropVal: string | string[]) => {
+      setCell((prevCell) => {
+        const newCell = { ...prevCell }
         if (property === "value" && typeof newPropVal === "string") {
-          cell.value = newPropVal
+          newCell.value = newPropVal
         } else if (property === "styles" && Array.isArray(newPropVal)) {
-          cell.styles = newPropVal
+          newCell.styles = newPropVal
         }
-        return newCells
+        return newCell
       })
     },
-    [activeCell.col, activeCell.row, setCells]
+    [setCell]
   )
 
   const storeVal = useCallback(
