@@ -29,11 +29,12 @@ const initialCells = () => {
 function App() {
   const [cells, setCells] = useState<Cell[][]>(initialCells())
   const [activeCell, setActiveCell] = useState<CellRef>({ row: 0, col: 0 })
+  const [selectedRange, setSelectedRange] = useState<Array<CellRef> | null>(null)
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const colHeaders = useCallback(() => {
+  const { current: colHeaders } = useRef(() => {
     const headers = []
     for (let index = 0; index < numCols; index++) {
       let columnName = ""
@@ -45,7 +46,18 @@ function App() {
       headers.push(columnName)
     }
     return headers
-  }, [])
+  })
+
+  const isInRange = () => {
+    if (!selectedRange) return false
+    const inRow =
+      Math.min(...selectedRange.map((x) => x.row)) <= activeCell.row &&
+      activeCell.row <= Math.max(...selectedRange.map((x) => x.row))
+    const inCol =
+      Math.min(...selectedRange.map((x) => x.col)) <= activeCell.col &&
+      activeCell.col <= Math.max(...selectedRange.map((x) => x.col))
+    return inRow && inCol
+  }
 
   const storeVal = useCallback(
     (val?: string) => {
@@ -72,11 +84,15 @@ function App() {
   }, [isEditing])
 
   useEffect(() => {
-    const navigateCells = (rowDelta: number, colDelta: number) => {
+    const navigateCells = (rowDelta: number, colDelta: number, allowRange?: boolean, modifier?: boolean) => {
       const newRow = activeCell.row + rowDelta
       const newCol = activeCell.col + colDelta
       if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numCols) {
-        setActiveCell({ row: newRow, col: newCol })
+        if (allowRange && modifier) {
+          setSelectedRange([{ ...activeCell }, { row: newRow, col: newCol }])
+        } else {
+          setActiveCell({ row: newRow, col: newCol })
+        }
       }
     }
 
@@ -112,25 +128,25 @@ function App() {
           case "ArrowUp":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(-1, 0)
+              navigateCells(-1, 0, true, e.shiftKey)
             }
             break
           case "ArrowDown":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(1, 0)
+              navigateCells(1, 0, true, e.shiftKey)
             }
             break
           case "ArrowLeft":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(0, -1)
+              navigateCells(0, -1, true, e.shiftKey)
             }
             break
           case "ArrowRight":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(0, 1)
+              navigateCells(0, 1, true, e.shiftKey)
             }
             break
           case "Backspace":
@@ -188,9 +204,6 @@ function App() {
             {colHeaders().map((colH, colIndex) => (
               <th key={`colHeader-${colIndex}`}>{colH}</th>
             ))}
-            {Array.from({ length: numCols }, (_, colIndex) => (
-              <th key={`colHeader-${colIndex}`}>{colHeaders()}</th>
-            ))}
           </tr>
           {cells.map((row, rowIndex) => (
             <tr key={rowIndex}>
@@ -203,7 +216,7 @@ function App() {
                   }`}
                 >
                   <div
-                    className="p-0.5"
+                    className="p-0.5 flex items-center"
                     style={{
                       minWidth: colSize,
                       minHeight: rowSize,
@@ -221,7 +234,9 @@ function App() {
                         className="w-full h-full border-0 outline-none"
                       />
                     ) : (
-                      <p className={`w-full overflow-hidden`}>{cell.value}</p>
+                      <p className={`w-full overflow-hidden cursor-default ${isInRange() ? "bg-blue-100" : ""}`}>
+                        {cell.value}
+                      </p>
                     )}
                   </div>
                 </td>
