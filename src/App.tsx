@@ -1,18 +1,10 @@
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react"
+import { Cell, CellRef } from "./types/types"
+import useKeyNavigation from "./hooks/useKeyNavigation"
+import useStoreCell from "./hooks/useStoreCell"
 
-interface Cell {
-  value: string
-  styles: string[]
-}
-type CellProp = keyof Cell
-
-interface CellRef {
-  row: number
-  col: number
-}
-
-const numRows = 25
-const numCols = 10
+export const numRows = 25
+export const numCols = 10
 const rowSize = "30px"
 const colSize = "100px"
 
@@ -36,7 +28,19 @@ function App() {
 
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const { current: colHeaders } = useRef(() => {
+  const { setCellProperty, storeVal } = useStoreCell({ setCells, activeCell, setIsEditing })
+
+  useKeyNavigation({
+    activeCell,
+    setActiveCell,
+    cells,
+    setCellProperty,
+    isEditing,
+    setIsEditing,
+    storeVal,
+  })
+
+  const colHeaders = useCallback(() => {
     const headers = []
     for (let index = 0; index < numCols; index++) {
       let columnName = ""
@@ -48,48 +52,7 @@ function App() {
       headers.push(columnName)
     }
     return headers
-  })
-
-  const isInRange = () => {
-    if (!selectedRange) return false
-    const inRow =
-      Math.min(...selectedRange.map((x) => x.row)) <= activeCell.row &&
-      activeCell.row <= Math.max(...selectedRange.map((x) => x.row))
-    const inCol =
-      Math.min(...selectedRange.map((x) => x.col)) <= activeCell.col &&
-      activeCell.col <= Math.max(...selectedRange.map((x) => x.col))
-    return inRow && inCol
-  }
-
-  const setCellProperty = useCallback(
-    (property: CellProp, newPropVal: string | string[]) => {
-      setCells((prevCells) => {
-        const newCells = [...prevCells]
-        const cell = newCells[activeCell.row][activeCell.col]
-        if (property === "value" && typeof newPropVal === "string") {
-          cell.value = newPropVal
-        } else if (property === "styles" && Array.isArray(newPropVal)) {
-          cell.styles = newPropVal
-        }
-        return newCells
-      })
-    },
-    [activeCell.col, activeCell.row]
-  )
-
-  const storeVal = useCallback(
-    (val?: string) => {
-      if (val !== undefined) {
-        setCellProperty("value", val)
-      }
-      setIsEditing(false)
-    },
-    [setCellProperty]
-  )
-
-  const editCell = () => {
-    setIsEditing(true)
-  }
+  }, [])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -97,100 +60,13 @@ function App() {
     }
   }, [isEditing])
 
-  useEffect(() => {
-    const navigateCells = (rowDelta: number, colDelta: number) => {
-      const newRow = activeCell.row + rowDelta
-      const newCol = activeCell.col + colDelta
-      if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numCols) {
-        setActiveCell({ row: newRow, col: newCol })
-      }
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isModifierKey = e.metaKey || e.altKey || e.ctrlKey
-      if (!isEditing && e.key.length === 1 && !isModifierKey) {
-        e.preventDefault()
-        setIsEditing(true)
-        setCells((prevCells) => {
-          const newCells = [...prevCells]
-          newCells[activeCell.row][activeCell.col].value = e.key
-          return newCells
-        })
-      } else {
-        let colChange = 0
-        switch (e.key) {
-          case "Enter":
-            e.preventDefault()
-            if (isEditing) {
-              storeVal()
-              const rowChange = e.shiftKey ? -1 : 1
-              navigateCells(rowChange, 0)
-            } else {
-              editCell()
-            }
-            break
-          case "Tab":
-            e.preventDefault()
-            if (isEditing) storeVal()
-            colChange = e.shiftKey ? -1 : 1
-            navigateCells(0, colChange)
-            break
-          case "ArrowUp":
-            e.preventDefault()
-            if (!isEditing) {
-              navigateCells(-1, 0)
-            }
-            break
-          case "ArrowDown":
-            e.preventDefault()
-            if (!isEditing) {
-              navigateCells(1, 0)
-            }
-            break
-          case "ArrowLeft":
-            e.preventDefault()
-            if (!isEditing) {
-              navigateCells(0, -1)
-            }
-            break
-          case "ArrowRight":
-            e.preventDefault()
-            if (!isEditing) {
-              navigateCells(0, 1)
-            }
-            break
-          case "Backspace":
-            if (!isEditing) {
-              e.preventDefault()
-              storeVal("")
-            }
-            break
-          case "Escape":
-            if (isEditing) {
-              e.preventDefault()
-              storeVal("")
-            }
-            break
-          default:
-            break
-        }
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [activeCell, setActiveCell, isEditing, storeVal])
-
   const isActiveCell = (row: number, col: number) => {
     return activeCell.row === row && activeCell.col === col
   }
 
   const handleCellClick = (row: number, col: number) => {
     if (isActiveCell(row, col)) {
-      editCell()
+      setIsEditing(true)
     } else {
       storeVal()
       setActiveCell({ row: row, col: col })
@@ -215,7 +91,7 @@ function App() {
           </tr>
           {cells.map((row, rowIndex) => (
             <tr key={rowIndex}>
-              <th className="border-y border-gray-500">{rowIndex + 1}</th>
+              <th className="border-y border-gray-500 px-1.5">{rowIndex + 1}</th>
               {row.map((cell, colIndex) => (
                 <td key={colIndex} className="border  p-0 relative border-gray-500">
                   <div
