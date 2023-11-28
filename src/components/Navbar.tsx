@@ -3,7 +3,9 @@ const Navbar = () => {
   return (
     <div className="border-b border-gray-500 px-2 py-0.5 flex">
       {sheets.map((sheet) => (
-        <div className="underline cursor-pointer">{sheet.name}</div>
+        <div key={sheet.id} className="underline cursor-pointer">
+          {sheet.name}
+        </div>
       ))}
     </div>
   )
