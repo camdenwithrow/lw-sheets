@@ -1,10 +1,9 @@
-export interface CellData {
-  ref: CellRef
+export interface Cell {
   value: string
   styles: string[]
 }
 
-export type CellKeys = keyof CellData
+export type CellProp = keyof Cell
 
 export interface CellRef {
   row: number
