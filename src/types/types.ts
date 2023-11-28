@@ -9,3 +9,5 @@ export interface CellRef {
   row: number
   col: number
 }
+
+export type CellRefProp = keyof CellRef

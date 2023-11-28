@@ -23,7 +23,7 @@ const initialCells = () => {
 function App() {
   const [cells, setCells] = useState<Cell[][]>(initialCells())
   const [activeCell, setActiveCell] = useState<CellRef>({ row: 0, col: 0 })
-  const [selectedRange] = useState<Array<CellRef> | null>(null)
+  const [selectedRange, setSelectedRange] = useState<Array<CellRef>>([])
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -38,7 +38,13 @@ function App() {
     isEditing,
     setIsEditing,
     storeVal,
+    selectedRange,
+    setSelectedRange,
   })
+
+  useEffect(() => {
+    console.log(selectedRange)
+  }, [selectedRange])
 
   const colHeaders = useCallback(() => {
     const headers = []
@@ -54,14 +60,12 @@ function App() {
     return headers
   }, [])
 
-  const isInRange = () => {
-    if (!selectedRange) return false
-    const inRow =
-      Math.min(...selectedRange.map((x) => x.row)) <= activeCell.row &&
-      activeCell.row <= Math.max(...selectedRange.map((x) => x.row))
-    const inCol =
-      Math.min(...selectedRange.map((x) => x.col)) <= activeCell.col &&
-      activeCell.col <= Math.max(...selectedRange.map((x) => x.col))
+  const isInRange = (rowI: number, colI: number) => {
+    if (selectedRange.length === 0) return false
+
+    const [start, end] = selectedRange
+    const inRow = rowI <= Math.max(start.row, end.row) && rowI >= Math.min(start.row, end.row)
+    const inCol = colI <= Math.max(start.col, end.col) && colI >= Math.min(start.col, end.col)
     return inRow && inCol
   }
 
@@ -71,12 +75,12 @@ function App() {
     }
   }, [isEditing])
 
-
   const isActiveCell = (row: number, col: number) => {
     return activeCell.row === row && activeCell.col === col
   }
 
   const handleCellClick = (row: number, col: number) => {
+    if (selectedRange.length !== 0) setSelectedRange([])
     if (isActiveCell(row, col)) {
       setIsEditing(true)
     } else {
@@ -111,7 +115,8 @@ function App() {
                       activeCell.row === rowIndex && activeCell.col === colIndex
                         ? "after:absolute after:-inset-px  after:content-[''] after:border-2 after:border-blue-500"
                         : ""
-                    }`}
+                    }
+                    ${isInRange(rowIndex, colIndex) ? "bg-blue-100" : ""}`}
                     style={{
                       minWidth: colSize,
                       minHeight: rowSize,
@@ -129,9 +134,7 @@ function App() {
                         className="w-full h-full border-0 outline-none"
                       />
                     ) : (
-                      <p className={`w-full overflow-hidden cursor-default ${isInRange() ? "bg-blue-100" : ""}`}>
-                        {cell.value}
-                      </p>
+                      <p className={`w-full overflow-hidden cursor-default `}>{cell.value}</p>
                     )}
                   </div>
                 </td>

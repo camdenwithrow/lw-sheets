@@ -10,13 +10,26 @@ interface useKeyNavigationProps {
   isEditing: boolean
   setIsEditing: React.Dispatch<SetStateAction<boolean>>
   storeVal: (val?: string) => void
+  selectedRange: CellRef[]
+  setSelectedRange: React.Dispatch<SetStateAction<CellRef[]>>
 }
 
 const useKeyNavigation = (props: useKeyNavigationProps) => {
-  const { activeCell, setActiveCell, cells, setCellProperty, isEditing, setIsEditing, storeVal } = props
+  const {
+    activeCell,
+    setActiveCell,
+    cells,
+    setCellProperty,
+    isEditing,
+    setIsEditing,
+    storeVal,
+    selectedRange,
+    setSelectedRange,
+  } = props
 
   useEffect(() => {
     const navigateCells = (rowDelta: number, colDelta: number) => {
+      if (selectedRange.length !== 0) setSelectedRange([])
       const newRow = activeCell.row + rowDelta
       const newCol = activeCell.col + colDelta
       if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numCols) {
@@ -34,6 +47,13 @@ const useKeyNavigation = (props: useKeyNavigationProps) => {
       } else {
         setCellProperty("styles", [...styles, style])
       }
+    }
+
+    const isOffset = (vals: CellRef[], offset: number[]) => {
+      // offset receives array [row, col] offset vals
+      const rowsOffset = vals[1].row - vals[0].row === offset[0]
+      const colsOffset = vals[1].col - vals[0].col === offset[1]
+      return rowsOffset && colsOffset
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -79,25 +99,73 @@ const useKeyNavigation = (props: useKeyNavigationProps) => {
           case "ArrowUp":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(-1, 0)
+              if (e.shiftKey) {
+                if (selectedRange.length === 0) {
+                  setSelectedRange([activeCell, { row: activeCell.row - 1, col: activeCell.col }])
+                } else if (isOffset(selectedRange, [1, 0])) {
+                  setSelectedRange([])
+                } else {
+                  const newSecondRef = { ...selectedRange[1] }
+                  newSecondRef.row = selectedRange[1].row - 1
+                  setSelectedRange([activeCell, newSecondRef])
+                }
+              } else {
+                navigateCells(-1, 0)
+              }
             }
             break
           case "ArrowDown":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(1, 0)
+              if (e.shiftKey) {
+                if (selectedRange.length === 0) {
+                  setSelectedRange([activeCell, { row: activeCell.row + 1, col: activeCell.col }])
+                } else if (isOffset(selectedRange, [-1, 0])) {
+                  setSelectedRange([])
+                } else {
+                  const newSecondRef = { ...selectedRange[1] }
+                  newSecondRef.row = selectedRange[1].row + 1
+                  setSelectedRange([activeCell, newSecondRef])
+                }
+              } else {
+                navigateCells(1, 0)
+              }
             }
             break
           case "ArrowLeft":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(0, -1)
+              if (e.shiftKey) {
+                if (selectedRange.length === 0) {
+                  setSelectedRange([activeCell, { row: activeCell.row, col: activeCell.col - 1 }])
+                } else if (isOffset(selectedRange, [0, 1])) {
+                  setSelectedRange([])
+                } else {
+                  const newSecondRef = { ...selectedRange[1] }
+                  newSecondRef.col = selectedRange[1].col - 1
+                  setSelectedRange([activeCell, newSecondRef])
+                }
+              } else {
+                navigateCells(0, -1)
+              }
             }
             break
           case "ArrowRight":
             e.preventDefault()
             if (!isEditing) {
-              navigateCells(0, 1)
+              if (e.shiftKey) {
+                if (selectedRange.length === 0) {
+                  setSelectedRange([activeCell, { row: activeCell.row, col: activeCell.col + 1 }])
+                } else if (isOffset(selectedRange, [0, -1])) {
+                  setSelectedRange([])
+                } else {
+                  const newSecondRef = { ...selectedRange[1] }
+                  newSecondRef.col = selectedRange[1].col + 1
+                  setSelectedRange([activeCell, newSecondRef])
+                }
+              } else {
+                navigateCells(0, 1)
+              }
             }
             break
           case "Backspace":
@@ -123,7 +191,17 @@ const useKeyNavigation = (props: useKeyNavigationProps) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [activeCell, setActiveCell, cells, setCellProperty, isEditing, setIsEditing, storeVal])
+  }, [
+    activeCell,
+    setActiveCell,
+    cells,
+    setCellProperty,
+    isEditing,
+    setIsEditing,
+    storeVal,
+    selectedRange,
+    setSelectedRange,
+  ])
 }
 
 export default useKeyNavigation
